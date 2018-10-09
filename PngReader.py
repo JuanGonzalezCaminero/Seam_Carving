@@ -1,6 +1,6 @@
 import zlib
 
-image = open("C:\\Users\\Juan\\Desktop\\Trabajo ALGC\\Test_png.png", "rb") #Al abrirla en modo binario,
+image = open("C:\\Users\\JuanG\\Desktop\\readTest.png", "rb") #Al abrirla en modo binario,
 # no se efectuan transformaciones no deseadas de los datos al leerlo
 print(image.read(8)) #Skips the first 8 bytes
 chunkType = ""
@@ -13,6 +13,7 @@ filterMethod = 0
 interlaceMethod = 0
 palette = []
 imageBytes = bytearray()
+decodedImage = [][]
 
 #Reading the image and extracting the main parameters
 while chunkType != "IEND":
@@ -63,3 +64,14 @@ decompressedData = zlib.decompress(imageBytes, wbits=zlib.MAX_WBITS, bufsize=zli
 #the filtering to access the actual data
 print(len(decompressedData))
 print(decompressedData)
+
+
+#This applies if truecolour is used, for indexed colour a different method must be applied
+if(filterMethod == 0):
+       #If the filtering method is 0, no filtering was applied
+       for i in range(imageHeight):
+              for j in range(imageWidth):
+                     decodedImage[imageHeight][imageWidth] =
+                            
+else:
+       print("Filter decoding not yet implemented")
