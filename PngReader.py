@@ -1,7 +1,7 @@
 import zlib
 
 #image = open("C:\\Users\\JuanG\\Desktop\\readTest.png", "rb") #Al abrirla en modo binario,
-image = open("C:\\Users\\Juan\\Desktop\\Trabajo ALGC\\test_blanco.png", "rb") #Al abrirla en modo binario,
+image = open("Assets\\testbn4.png", "rb") #Al abrirla en modo binario,
 # no se efectuan transformaciones no deseadas de los datos al leerlo
 print(image.read(8)) #Skips the first 8 bytes
 chunkType = ""
@@ -79,8 +79,6 @@ decompressedData = zlib.decompress(imageBytes, wbits=zlib.MAX_WBITS, bufsize=zli
 print("Decompressed image:")
 print(decompressedData)
 
-
-
 #Filters are applied scanline to scanline, filter method 0 indicates the standard filtering
 #is used, with 5 possible options, the filter used in each scanline is defined by a byte before it
 #Te length of the scanlines stored within the data depends on the interlacing method
@@ -90,36 +88,112 @@ if interlaceMethod == 0:
     #The bit depth determines how many pixels represent each channel, the color type determines
     #the number of channels for a pixel, this variables affect the indexes within the array of
     #bytes that contains the data
+
+    #Naming:
+
+    #x: the byte being filtered
+    #a: the byte corresponding to x in the pixel immediately before the pixel containing x
+    #(or the byte immediately before x, when the bit depth is less than 8)
+    #b: the byte corresponding to x in the previous scanline;
+    #c: the byte corresponding to b in the pixel immediately before the pixel containing b
+    #(or the byte immediately before b, when the bit depth is less than 8).
+
+    #All the operations are performed using unsigned modulo 256 arithmetic
     if colorType == 2:
         #for color type 2 there are 2 possibilities for the bit depth, 8 and 16
         if bitDepth == 8:
+            #Número de píxels por scanline * número de bytes por píxel + 1 byte de filtro
+            scanlineLength = imageWidth * 3 + 1
             for i in range(imageHeight):
-                #línea que queremos leer * ancho de la imágen  * número de canales +
-                # + línea que queremos leer (ya que los bytes que contienen el filtro
-                # hacen que las lineas sean 1 byte más largas y hay que compensarlo) , de
-                #esta forma obtenemos la posición del inicio de la siguiente scanline
-                scanlineFilter = decompressedData[i * imageWidth * 3 + i]
+                #línea que queremos leer * tamaño de la scanline
+                scanlineBase = i * scanlineLength
+
+                print(scanlineBase)
+                scanlineFilter = decompressedData[scanlineBase]
                 if scanlineFilter == 0:
                     #No filter was applied
-                    unfilteredImage += (decompressedData[i * imageWidth * 3 + i + 1 : (i + 1) * imageWidth * 3 + i + 1])
-                else:
-                    print("Filter decoding not yet implemented")
+                    unfilteredImage += (decompressedData[scanlineBase + 1 : scanlineLength + scanlineBase])
+                elif scanlineFilter == 1:
+                    print("Filter type 1")
+                    # Name: Sub
+                    # Filt(x) = Orig(x) - Orig(a)
+                    # Recon(x) = Filt(x) + Recon(a)
+                    unfilteredImage += (decompressedData[scanlineBase + 1: scanlineBase + 3 + 1])
+                    for j in range(scanlineBase + 4, scanlineLength + scanlineBase + 1 - 3, 3):
+                        print([(a + b)%256 for a, b in zip(decompressedData[j: j + 3], unfilteredImage[-3:])])
+                        unfilteredImage += (bytearray([(filteredByte + reconstructedByte)%256 for
+                                                       filteredByte, reconstructedByte in
+                                                       zip(decompressedData[j: j + 3], unfilteredImage[-3:])]))
+                elif scanlineFilter == 2:
+                    print("Filter type 2")
+                    # Name: Up
+                    # Filt(x) = Orig(x) - Orig(b)
+                    # Recon(x) = Filt(x) + Recon(b)
+                    # All the bytes in the previous scanline have already been decoded, we can do this with
+                    # a simple yet elegant list comprehension
+                    unfilteredImage += (bytearray([(filteredByte + reconstructedByte)%256 for
+                                                   filteredByte, reconstructedByte in
+                                                   zip(decompressedData[scanlineBase + 1:
+                                                                        scanlineLength + scanlineBase + 1],
+                                                       unfilteredImage[-scanlineLength + 1:])]))
+                elif scanlineFilter == 3:
+                    print("Filter type 3")
+                elif scanlineFilter == 4:
+                    print("Filter type 4")
         else:
+            #Número de píxels por scanline * número de bytes por canal * número de canales por píxel + 1 byte de filtro
+            scanlineLength = imageWidth * 3 * 2 + 1
             for i in range(imageHeight):
-                # línea que queremos leer * ancho de la imágen  * número de canales * 2 +
-                # + línea que queremos leer (ya que los bytes que contienen el filtro
-                # hacen que las lineas sean 1 byte más largas y hay que compensarlo) , de
-                # esta forma obtenemos la posición del inicio de la siguiente scanline
-                #Se multiplica por 2 ya que cada posición contiene un byte y con esta profundidad
-                #de bits cada canal tiene 2 bytes
-                scanlineFilter = decompressedData[i * imageWidth * 3 * 2 + i]
+                # línea que queremos leer * tamaño de la scanline
+                scanlineBase = i * scanlineLength
+
+                scanlineFilter = decompressedData[scanlineBase]
                 #print(i * imageWidth * 3 * 2 + i)
                 #print(scanlineFilter)
                 if scanlineFilter == 0:
+                    print("Filter type 0:")
                     #No filter was applied
-                    unfilteredImage += (decompressedData[i * imageWidth * 3 * 2 + i + 1 : (i + 1) * imageWidth * 3 * 2 + i + 1])
-                else:
-                    print("Filter decoding not yet implemented")
+                    unfilteredImage += (decompressedData[scanlineBase + 1 : scanlineLength + scanlineBase])
+                elif scanlineFilter == 1:
+                    print("Filter type 1:")
+                    #Name: Sub
+                    #Filt(x) = Orig(x) - Orig(a)
+                    #Recon(x) = Filt(x) + Recon(a)
+                    #What we have here are the Filt(x) values for each byte
+                    #The first pixel is already in its original codification
+                    unfilteredImage += (decompressedData[scanlineBase + 1 : scanlineBase + 2 * 3 + 1])
+                    for j in range(scanlineBase + 7, scanlineLength + scanlineBase + 1 - 6, 2 * 3):
+                        #6 is the number of bytes per pixel, the filters are applied byte by byte, but
+                        #the values referred in the formulas are relative to the pixels
+                        #starting at 7 because the values in the first pixel are the original ones, as it
+                        #has no pixels to its left
+                        #the for loop ends at scanlineLength + scanlineBase - 6, because the next 6 bytes
+                        #will be picked in that last iteration, after that starts the following scanline,
+                        #+1 because range doesn't include the last number
+                        print([a + b for a,b in zip(decompressedData[j : j + 6], unfilteredImage[-6 :])])
+                        unfilteredImage += (bytearray([(filteredByte + reconstructedByte)%256 for
+                                                       filteredByte, reconstructedByte in
+                                                       zip(decompressedData[j : j + 6], unfilteredImage[-6 :])]))
+                        print("Filtered line: ")
+                        print(decompressedData[scanlineBase + 1 : scanlineBase + scanlineLength])
+                        print("Unfiltered line: ")
+                        print(unfilteredImage[-scanlineLength + 1:])
+                elif scanlineFilter == 2:
+                    print("Filter type 2:")
+                    # Name: Up
+                    # Filt(x) = Orig(x) - Orig(b)
+                    # Recon(x) = Filt(x) + Recon(b)
+                    #All the bytes in the previous scanline have already been decoded, we can do this with
+                    #a simple yet elegant list comprehension
+                    unfilteredImage += (bytearray([(filteredByte + reconstructedByte)%256 for
+                                                   filteredByte, reconstructedByte in
+                                                   zip(decompressedData[scanlineBase + 1 :
+                                                                        scanlineLength + scanlineBase + 1],
+                                                       unfilteredImage[-scanlineLength + 1:])]))
+                elif scanlineFilter == 3:
+                    print("Filter type 3 not yet implemented")
+                elif scanlineFilter == 4:
+                    print("Filter type 4 not yet implemented")
 else:
     print("Interlaced images decoding not yet implemented")
 
@@ -131,6 +205,8 @@ print(unfilteredImage)
 if interlaceMethod == 0:
     #No interlacing was applied
     if colorType == 2:
+        scanlineLength8 = imageWidth * 3
+        scanlineLength16 = imageWidth * 2 * 3
         for i in range(imageHeight):
             # Appending a new empty list to the list of lists
             decodedImage.append([])
@@ -139,31 +215,39 @@ if interlaceMethod == 0:
                 # The data is appended to the list i of the list of lists "decodedImage", thanks python!
                 #Depending on the bit depth, each channel will be made up of 8 or 16 bits, (in truecolour)
                 if bitDepth == 8:
-                    decodedImage[i].append((unfilteredImage[i * imageWidth * 3 + 3 * j],
-                                            unfilteredImage[i * imageWidth * 3 + 3 * j + 1],
-                                            unfilteredImage[i * imageWidth * 3 + 3 * j + 2]))
+                    decodedImage[i].append((unfilteredImage[i * scanlineLength8 + 3 * j],
+                                            unfilteredImage[i * scanlineLength8 + 3 * j + 1],
+                                            unfilteredImage[i * scanlineLength8 + 3 * j + 2]))
                 else:
                     #print("i: ",  i)
                     #print("j: ",  j)
                     #print(i * imageWidth * 2 * 3 + 3 * j * 2)
                     #scanline * ancho de la imagen * 2 bytes por canal * número de canales +
                     #  numero de canales * posicion del pixel * 2 bytes por canal
-                    decodedImage[i].append((unfilteredImage[i * imageWidth * 2 * 3 + 3 * j * 2:
-                                                            i * imageWidth * 2 * 3 + 3 * j * 2 + 2],
-                                            unfilteredImage[i * imageWidth * 2 * 3 + 3 * j * 2 + 2:
-                                                            i * imageWidth * 2 * 3 + 3 * j * 2 + 4],
-                                            unfilteredImage[i * imageWidth * 2 * 3 + 3 * j * 2 + 4:
-                                                            i * imageWidth * 2 * 3 + 3 * j * 2 + 6]))
+                    decodedImage[i].append((unfilteredImage[i * scanlineLength16 + 3 * j * 2:
+                                                            i * scanlineLength16 + 3 * j * 2 + 2],
+                                            unfilteredImage[i * scanlineLength16 + 3 * j * 2 + 2:
+                                                            i * scanlineLength16 + 3 * j * 2 + 4],
+                                            unfilteredImage[i * scanlineLength16 + 3 * j * 2 + 4:
+                                                            i * scanlineLength16 + 3 * j * 2 + 6]))
 else:
     print("Interlace decoding not yet implemented")
     exit()
 
-for i in range(len(decodedImage)):
-    print()
-    for j in range(len(decodedImage[0])):
-        print("%10s" % ((bytes(decodedImage[i][j][0]),
-                        bytes(decodedImage[i][j][0]),
-                        bytes(decodedImage[i][j][0])),), end = " ")
-        #print("%3d" % (int.from_bytes(decodedImage[i][j][0],byteorder='big', signed=False)+
-         #               int.from_bytes(decodedImage[i][j][1],byteorder='big', signed=False)+
-          #              int.from_bytes(decodedImage[i][j][2],byteorder='big', signed=False)), end=" ")
+if bitDepth == 16:
+    for i in range(len(decodedImage)):
+        print()
+        for j in range(len(decodedImage[0])):
+            print("%40s" % ((bytes(decodedImage[i][j][0]),
+                            bytes(decodedImage[i][j][1]),
+                            bytes(decodedImage[i][j][2])),), end = " ")
+            #print("%3d" % (int.from_bytes(decodedImage[i][j][0],byteorder='big', signed=False)+
+             #               int.from_bytes(decodedImage[i][j][1],byteorder='big', signed=False)+
+              #              int.from_bytes(decodedImage[i][j][2],byteorder='big', signed=False)), end=" ")
+else:
+    for i in range(len(decodedImage)):
+        print()
+        for j in range(len(decodedImage[0])):
+            print("%20s" % ((decodedImage[i][j][0],
+                            decodedImage[i][j][1],
+                            decodedImage[i][j][2]),), end = " ")
