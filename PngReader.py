@@ -1,9 +1,9 @@
 import zlib
 
 #image = open("C:\\Users\\JuanG\\Desktop\\readTest.png", "rb") #Al abrirla en modo binario,
-image = open("Assets\\testbn4.png", "rb") #Al abrirla en modo binario,
+image = open("Assets\\mitadmitad.png", "rb") #Al abrirla en modo binario,
 # no se efectuan transformaciones no deseadas de los datos al leerlo
-print(image.read(8)) #Skips the first 8 bytes
+image.seek(8) #Skips the first 8 bytes
 chunkType = ""
 imageWidth = 0
 imageHeight = 0
@@ -13,7 +13,7 @@ compressionMethod = 0
 filterMethod = 0
 interlaceMethod = 0
 palette = []
-imageBytes = bytearray()
+compressedImage = bytearray()
 decodedImage = []
 unfilteredImage = bytearray()
 
@@ -50,7 +50,7 @@ while chunkType != "IEND":
 
        elif chunkType == "IDAT":
               print(chunkLength)
-              imageBytes += bytearray(image.read(chunkLength))
+              compressedImage += bytearray(image.read(chunkLength))
               # Skips the CRC
               image.read(4)
 
@@ -73,7 +73,7 @@ print("Image width: %d\n"
 #Now the image data is stored in a bytearray. The image data is first filtered and compressed after that,
 #we need to decode it before it can be used. The data in png is compressed using the zlib "deflate" algorithm,
 #I will use a library to decompress it
-decompressedData = zlib.decompress(imageBytes, wbits=zlib.MAX_WBITS, bufsize=zlib.DEF_BUF_SIZE)
+decompressedData = zlib.decompress(compressedImage, wbits=zlib.MAX_WBITS, bufsize=zlib.DEF_BUF_SIZE)
 #decompressedData is the decompressed version of the filtered image, it is a bytes object
 #The scanlines of the image may still be filtered, so that would have to be decoded
 print("Decompressed image:")
