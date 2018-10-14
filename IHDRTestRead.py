@@ -24,4 +24,3 @@ print("Chunk lenght: %d\n"
       (chunkLength, chunkType, width, height, bitDepth, colorType, compressionMethod, filterMethod, interlaceMethod))
 
 
-
