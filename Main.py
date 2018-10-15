@@ -74,9 +74,10 @@ def getEnergy(image):
 
 ######################### MAIN ##############################
 
-decoder = PNGDecoder("Assets\\escritorio2.png")
+decoder = PNGDecoder("Assets/portatil.png")
 
 decoder.printParameters()
+bitDepth = decoder.getBitDepth()
 imageRGB = decoder.getRGBImage()
 #printImage(imageRGB)
 
@@ -92,28 +93,27 @@ imageRGB = decoder.getRGBImage()
 #values for the image (in a greyscale image, in a RGB image we would have 3 separate functions)
 #We only know the values obtained from the evaluation of this function in each of the pixels
 
-#Getting the energy for each channel
-energyR = getEnergy(imageR)
-energyG = getEnergy(imageG)
-energyB = getEnergy(imageB)
-
 #printChannel(energyR, "R energy:")
 #printChannel(energyG, "G energy:")
 #printChannel(energyB, "B energy:")
 
+greyscaleImage = []
 #Combining the channels into a single greyscale image
-energyImage = []
-for i in range(len(energyR)):
-    energyImage.append([])
-    for j in range(len(energyR[0])):
-        energyImage[i].append(energyR[i][j]//3 + energyG[i][j]//3 + energyB[i][j]//3)
+for i in range(len(imageR)):
+    greyscaleImage.append([])
+    for j in range(len(imageR[0])):
+        greyscaleImage[i].append(imageR[i][j]//3 + imageG[i][j]//3 + imageB[i][j]//3)
+
+#Getting the energy of the pixels
+energyImage = getEnergy(greyscaleImage)
+
 
 #printChannel(energyImage, "energy:")
 
 #Using the png module to encode the new image
 print("Encoding started")
 encodedImage = png.from_array(energyImage, "L;8")
-encodedImage.save("Assets\\energyTest.png")
+encodedImage.save("Assets/energyTest2.png")
 
 
 
