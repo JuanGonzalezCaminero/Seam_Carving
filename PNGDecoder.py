@@ -14,6 +14,8 @@ class PNGDecoder:
         self.compressedImage = bytearray()
         self.loadImage()
 
+    def getBitDepth(self):
+        return self.bitDepth
 
     def loadImage(self):
         chunkType = ""
