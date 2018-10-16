@@ -147,6 +147,15 @@ def getEnergyRGBWithMod(imageRGB, bitDepth):
     energyImage = combineEnergyChannelsMod(energyR, energyG, energyB, bitDepth)
     return energyImage
 
+#Combines the channels mod 2^BitDepth and uses mod 2^BitDepth for the value of the gradient
+def getEnergyRGBWithFullMod(imageRGB, bitDepth):
+    (imageR, imageG, imageB) = getSeparateChannels(imageRGB)
+    energyR = getEnergyUsingModule(imageR, bitDepth)
+    energyG = getEnergyUsingModule(imageG, bitDepth)
+    energyB = getEnergyUsingModule(imageB, bitDepth)
+    energyImage = combineEnergyChannelsMod(energyR, energyG, energyB, bitDepth)
+    return energyImage
+
 #Receives 3 energy matrices and returns a single greyscale image obtaines by adding
 #the 3, each divided by 3 so the result doesn't overflow the bit depth
 def combineEnergyChannels(energyR, energyG, energyB):
@@ -171,9 +180,11 @@ def combineEnergyChannelsMod(energyR, energyG, energyB, bitDepth):
             energyImage[i].append((energyR[i][j] + energyG[i][j] + energyB[i][j]) % bitsPerChannel)
     return energyImage
 
+
+
 ######################### MAIN ##############################
 
-decoder = PNGDecoder("Assets\\calle.png")
+decoder = PNGDecoder("Assets\\portatil.png")
 decoder.printParameters()
 bitDepth = decoder.getBitDepth()
 imageRGB = decoder.getRGBImage()
@@ -207,6 +218,13 @@ if bitDepth == 8:
 elif bitDepth == 16:
     encodedImage = png.from_array(energyRGBMod, "L;16")
 encodedImage.save("Results\\energyFromRGBWithMod.png")
+
+energyRGBFullMod = getEnergyRGBWithFullMod(imageRGB, bitDepth)
+if bitDepth == 8:
+    encodedImage = png.from_array(energyRGBFullMod, "L;8")
+elif bitDepth == 16:
+    encodedImage = png.from_array(energyRGBFullMod, "L;16")
+encodedImage.save("Results\\energyFromRGBFullMod.png")
 
 
 
