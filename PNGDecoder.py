@@ -420,16 +420,6 @@ class PNGDecoder:
                         rgbImage[i].append((int.from_bytes(deinterlacedImage[i][j][0], byteorder='big', signed=False),
                                             int.from_bytes(deinterlacedImage[i][j][1], byteorder='big', signed=False),
                                             int.from_bytes(deinterlacedImage[i][j][2], byteorder='big', signed=False)))
-
-                #for i in range(len(deinterlacedImage)):
-                #    print()
-                #    for j in range(len(deinterlacedImage[0])):
-                #        print("%40s" % ((bytes(deinterlacedImage[i][j][0]),
-                #                         bytes(deinterlacedImage[i][j][1]),
-                #                         bytes(deinterlacedImage[i][j][2])),), end=" ")
-                        # print("%3d" % (int.from_bytes(decodedImage[i][j][0],byteorder='big', signed=False)+
-                        #               int.from_bytes(decodedImage[i][j][1],byteorder='big', signed=False)+
-                        #              int.from_bytes(decodedImage[i][j][2],byteorder='big', signed=False)), end=" ")
             else:
                 for i in range(len(deinterlacedImage)):
                     rgbImage.append([])
@@ -437,12 +427,6 @@ class PNGDecoder:
                         rgbImage[i].append((deinterlacedImage[i][j][0],
                                             deinterlacedImage[i][j][1],
                                             deinterlacedImage[i][j][2]))
-                #for i in range(len(deinterlacedImage)):
-                #    print()
-                #    for j in range(len(deinterlacedImage[0])):
-                #        print("%20s" % ((deinterlacedImage[i][j][0],
-                #                         deinterlacedImage[i][j][1],
-                #                         deinterlacedImage[i][j][2]),), end=" ")
             return rgbImage
 
         elif self.colorType == 3:
