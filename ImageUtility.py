@@ -1,4 +1,5 @@
 import png
+import functools
 
 #Our goal with seam carving is to compute, for each pixel along the top scanline
 #the seam with the lowest energy, once we have all the seams computed we can use
@@ -43,34 +44,67 @@ import png
 # We only know the values obtained from the evaluation of this function in each of the pixels
 
 #Returns an array indicating the cost of the less energy seam for each of the bottom-scanline pixels
-def getSeamCost(energyImage):
+def removeMinimalSeam(energyImage):
     #PROVISIONAL UNTIL I WRITE THE DECODER FOR TYPE 0 COLOR AND THE RECEIVED IMAGE
     #IS ALREADY GREYSCALE
     energyImage = getGreyscale(energyImage)
+    seamCost = []
     #Initializing the values of the pixels in the top scanline
-    seamCost = energyImage[0]
-    previousSeamCost = energyImage[0]
-    #The indexes of he pixels within each row that are chosen in each iteration
-    #are stored here so we have a means for reconstructing the solution after computing
-    #the optimal cost
-    chosenPixels = []
+    seamCost.append(energyImage[0])
     #Now, iterate through all the rows from row 2 to n and through
     #all the pixels in each row
     for i in range(1, len(energyImage)):
-            chosenPixels.append([])
+            seamCost.append([])
             for j in range(len(energyImage[0])):
                 #Compute the minimum seam cost up to each pixel of the row
-                if(j == 0):
-                    seamCost[j] = min(previousSeamCost[j],
-                                      previousSeamCost[j + 1]) + energyImage[i][j]
-                if(j == len(energyImage[0]) - 1):
-                    seamCost[j] = min(previousSeamCost[j - 1],
-                                      previousSeamCost[j]) + energyImage[i][j]
-                seamCost[j] = min(previousSeamCost[j - 1],
-                                  previousSeamCost[j],
-                                  previousSeamCost[j + 1]) + energyImage[i][j]
-            previousSeamCost = seamCost
-    return seamCost
+                if j == 0:
+                    seamCost[i].append(min(seamCost[i - 1][j],
+                                      seamCost[i - 1][j + 1]) + energyImage[i][j])
+                elif j == len(energyImage[0]) - 1:
+                    seamCost[i].append(min(seamCost[i - 1][j - 1],
+                                      seamCost[i - 1][j]) + energyImage[i][j])
+                else:
+                    seamCost[i].append(min(seamCost[i - 1][j - 1],
+                                      seamCost[i - 1][j],
+                                      seamCost[i - 1][j + 1]) + energyImage[i][j])
+    #We now have a matrix that contains the cost of the seam to each pixel for each scanline,
+    #to determine the least expensive seam just pick the pixel with the smallest value in the last
+    #scanline (there may be more than one), and to remove it, repeat the algorithm in reverse removing
+    #the corresponding pixels
+    print(seamCost[len(energyImage) - 1])
+    minElement = min(seamCost[len(energyImage) - 1])
+    indexOfMin = seamCost[len(energyImage) - 1].index(minElement)
+    previousIndex = indexOfMin
+    #Reverse search, removing elements after we find the next
+    for i in range(len(energyImage) - 2, 0, -1):
+        #The search for the index is restricted to the 3 elements from which the minimum
+        #element was extracted since there could be another element of the same value in
+        #other position of the scanline and we dont want that to be returned. Maybe 2 or even
+        #the 3 of them have the same value, thats irrelevant as then all the routes would yield
+        #a result of the same value
+        if indexOfMin == 0:
+            minElement = min(energyImage[i][indexOfMin],
+                             energyImage[i][indexOfMin + 1])
+            energyImage[i + 1].pop(indexOfMin)
+            previousIndex = indexOfMin
+            indexOfMin = seamCost[i].index(minElement, previousIndex, previousIndex + 1)
+
+        elif indexOfMin == len(energyImage[0]) - 1:
+            minElement = min(energyImage[i][indexOfMin - 1],
+                             energyImage[i][indexOfMin])
+            energyImage[i + 1].pop(indexOfMin)
+            previousIndex = indexOfMin
+            indexOfMin = seamCost[i].index(minElement, previousIndex - 1, previousIndex)
+
+        else:
+            minElement = min(energyImage[i][indexOfMin - 1],
+                             energyImage[i][indexOfMin],
+                             energyImage[i][indexOfMin + 1])
+            energyImage[i + 1].pop(indexOfMin)
+            previousIndex = indexOfMin
+            indexOfMin = seamCost[i].index(minElement, previousIndex - 1, previousIndex + 1)
+
+    return energyImage
 
 
 #Returns an RGB version of a greyscale image, esentially, returns a 3 channel
@@ -235,6 +269,10 @@ def getEnergyRGBWithFullMod(imageRGB, bitDepth):
 
 # Receives 3 energy matrices and returns a single greyscale image obtaines by adding
 # the 3, each divided by 3 so the result doesn't overflow the bit depth
+
+
+#Receives 3 energy matrices and returns a single greyscale image obtaines by adding
+#the 3, each divided by 3 so the result doesn't overflow the bit depth
 def combineEnergyChannels(energyR, energyG, energyB):
     energyImage = []
     for i in range(len(energyR)):
@@ -256,3 +294,4 @@ def combineEnergyChannelsMod(energyR, energyG, energyB, bitDepth):
         for j in range(len(energyR[0])):
             energyImage[i].append((energyR[i][j] + energyG[i][j] + energyB[i][j]) % bitsPerChannel)
     return energyImage
+
