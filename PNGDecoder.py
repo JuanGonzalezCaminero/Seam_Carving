@@ -216,7 +216,7 @@ class PNGDecoder:
             result = [(filteredByte + reconstructedByte) & 0xff for
                                            filteredByte, reconstructedByte in
                                            zip(scanline, previous_scanline)]
-            return result
+            return bytearray(result)
             #Uncool solution that doesnt use python's cool haskal-like thingies
             #for i in range(len(scanline)):
             #    result[i] = (scanline[i] + previous_scanline[i]) & 0xff

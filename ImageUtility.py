@@ -1,5 +1,6 @@
 import png
 import functools
+import ImageUtility
 
 #Our goal with seam carving is to compute, for each pixel along the top scanline
 #the seam with the lowest energy, once we have all the seams computed we can use
@@ -47,7 +48,8 @@ import functools
 def removeMinimalSeam(energyImage):
     #PROVISIONAL UNTIL I WRITE THE DECODER FOR TYPE 0 COLOR AND THE RECEIVED IMAGE
     #IS ALREADY GREYSCALE
-    energyImage = getGreyscale(energyImage)
+    if(type(energyImage[0][0]) != int):
+        energyImage = getGreyscale(energyImage)
     seamCost = []
     #Initializing the values of the pixels in the top scanline
     seamCost.append(energyImage[0])
@@ -71,38 +73,40 @@ def removeMinimalSeam(energyImage):
     #to determine the least expensive seam just pick the pixel with the smallest value in the last
     #scanline (there may be more than one), and to remove it, repeat the algorithm in reverse removing
     #the corresponding pixels
-    print(seamCost[len(energyImage) - 1])
+    #print(seamCost[len(energyImage) - 1])
+    #ImageUtility.printChannel(seamCost, "Coste")
+    #print("")
     minElement = min(seamCost[len(energyImage) - 1])
     indexOfMin = seamCost[len(energyImage) - 1].index(minElement)
     previousIndex = indexOfMin
     #Reverse search, removing elements after we find the next
-    for i in range(len(energyImage) - 2, 0, -1):
+    for i in range(len(energyImage) - 2, -2, -1):
         #The search for the index is restricted to the 3 elements from which the minimum
         #element was extracted since there could be another element of the same value in
         #other position of the scanline and we dont want that to be returned. Maybe 2 or even
         #the 3 of them have the same value, thats irrelevant as then all the routes would yield
         #a result of the same value
         if indexOfMin == 0:
-            minElement = min(energyImage[i][indexOfMin],
-                             energyImage[i][indexOfMin + 1])
+            minElement = min(seamCost[i][indexOfMin],
+                             seamCost[i][indexOfMin + 1])
             energyImage[i + 1].pop(indexOfMin)
             previousIndex = indexOfMin
-            indexOfMin = seamCost[i].index(minElement, previousIndex, previousIndex + 1)
+            indexOfMin = seamCost[i].index(minElement, previousIndex, previousIndex + 2)
 
-        elif indexOfMin == len(energyImage[0]) - 1:
-            minElement = min(energyImage[i][indexOfMin - 1],
-                             energyImage[i][indexOfMin])
-            energyImage[i + 1].pop(indexOfMin)
-            previousIndex = indexOfMin
-            indexOfMin = seamCost[i].index(minElement, previousIndex - 1, previousIndex)
-
-        else:
-            minElement = min(energyImage[i][indexOfMin - 1],
-                             energyImage[i][indexOfMin],
-                             energyImage[i][indexOfMin + 1])
+        elif indexOfMin == len(seamCost[0]) - 1:
+            minElement = min(seamCost[i][indexOfMin - 1],
+                             seamCost[i][indexOfMin])
             energyImage[i + 1].pop(indexOfMin)
             previousIndex = indexOfMin
             indexOfMin = seamCost[i].index(minElement, previousIndex - 1, previousIndex + 1)
+
+        else:
+            minElement = min(seamCost[i][indexOfMin - 1],
+                             seamCost[i][indexOfMin],
+                             seamCost[i][indexOfMin + 1])
+            energyImage[i + 1].pop(indexOfMin)
+            previousIndex = indexOfMin
+            indexOfMin = seamCost[i].index(minElement, previousIndex - 1, previousIndex + 2)
 
     return energyImage
 

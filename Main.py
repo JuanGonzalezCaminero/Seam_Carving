@@ -29,6 +29,9 @@ def generateEnergyImages(filename):
         encodedImage = png.from_array(greyScaleEnergy, "RGB;16")
     encodedImage.save("Results\\energyFromGreyScale.png")
 
+    del(greyScaleEnergy)
+    del(greyscaleImage)
+
     print("RGB energy start")
     energyRGB = ImageUtility.getEnergyRGB(imageRGB)
     energyRGB = ImageUtility.getRGBVersion(energyRGB)
@@ -38,6 +41,8 @@ def generateEnergyImages(filename):
     elif bitDepth == 16:
         encodedImage = png.from_array(energyRGB, "RGB;16")
     encodedImage.save("Results\\energyFromRGB.png")
+
+    del(energyRGB)
 
     print("RGB mod energy start")
     energyRGBMod = ImageUtility.getEnergyRGBWithMod(imageRGB, bitDepth)
@@ -49,6 +54,8 @@ def generateEnergyImages(filename):
         encodedImage = png.from_array(energyRGBMod, "RGB;16")
     encodedImage.save("Results\\energyFromRGBWithMod.png")
     print("Greyscale start")
+
+    del(energyRGBMod)
 
     print("RGB mod mod energy start")
     energyRGBFullMod = ImageUtility.getEnergyRGBWithFullMod(imageRGB, bitDepth)
@@ -62,15 +69,17 @@ def generateEnergyImages(filename):
 
 ######################### MAIN ##############################
 decoder = PNGDecoder("Results\\energyFromRGB.png")
-decoder2 = PNGDecoder("Assets\\cosas_sanas_1.png")
+#decoder2 = PNGDecoder("Assets\\cosas_sanas_1.png")
 energyImage = decoder.getRGBImage()
-#ImageUtility.removeMinimalSeam(energyImage)
 #generateEnergyImages("cosas_sanas_1")
 
 #remove some seams
 for i in range(20):
+    print(i)
     energyImage = ImageUtility.removeMinimalSeam(energyImage)
 
+encodedImage = png.from_array(energyImage, "L;8")
+encodedImage.save("Results\\seamCarved.png")
 
 
 
