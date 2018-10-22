@@ -44,6 +44,30 @@ def generateEnergyImages(filename):
 
     del(energyRGB)
 
+    print("RGB root gradient energy start")
+    energyRGBGradientMod = ImageUtility.getEnergyRGBWithGradientMod(imageRGB, bitDepth)
+    energyRGBGradientMod = ImageUtility.getRGBVersion(energyRGBGradientMod)
+    print("RGB root gradient energy end")
+    if bitDepth == 8:
+        encodedImage = png.from_array(energyRGBGradientMod, "RGB;8")
+    elif bitDepth == 16:
+        encodedImage = png.from_array(energyRGBGradientMod, "RGB;16")
+    encodedImage.save("Results\\energyFromRGBGradientMod.png")
+
+    del(energyRGBGradientMod)
+
+    print("RGB gradient mod energy start")
+    energyRGBGradientMod = ImageUtility.getEnergyRGBWithGradientMod(imageRGB, bitDepth)
+    energyRGBGradientMod = ImageUtility.getRGBVersion(energyRGBGradientMod)
+    print("RGB gradient mod energy end")
+    if bitDepth == 8:
+        encodedImage = png.from_array(energyRGBGradientMod, "RGB;8")
+    elif bitDepth == 16:
+        encodedImage = png.from_array(energyRGBGradientMod, "RGB;16")
+    encodedImage.save("Results\\energyFromRGBGradientMod.png")
+
+    del(energyRGBGradientMod)
+
     print("RGB mod energy start")
     energyRGBMod = ImageUtility.getEnergyRGBWithMod(imageRGB, bitDepth)
     energyRGBMod = ImageUtility.getRGBVersion(energyRGBMod)
@@ -67,19 +91,30 @@ def generateEnergyImages(filename):
     encodedImage.save("Results\\energyFromRGBFullMod.png")
 
 ######################### MAIN ##############################
-decoder = PNGDecoder("Results\\energyFromRGBFullMod.png")
-decoder2 = PNGDecoder("Assets\\castillo.png")
+decoder = PNGDecoder("Results\\energyFromRGBGradientMod.png")
+decoder2 = PNGDecoder("Assets\\clara.png")
 energyImage = decoder.getRGBImage()
 imageRGB = decoder2.getRGBImage()
 #generateEnergyImages("castillo")
 
+#Draw seams in the initial image
+#seamsImage = ImageUtility.drawSeams(energyImage, imageRGB)
+#encodedImage = png.from_array(seamsImage, "RGB;8")
+#encodedImage.save("Results\\seamsRGB.png")
+
+
 #remove some seams
-for i in range(150):
+for i in range(200):
     print(i)
+    # Draw seams in the image
+    #seamsImage = ImageUtility.drawSeams(energyImage, imageRGB)
+    #encodedImage = png.from_array(seamsImage, "RGB;8")
+    #filename = "Results\\seamsRGB" + str(i) + ".png"
+    #encodedImage.save(filename
     energyImage, imageRGB = ImageUtility.removeMinimalSeam(energyImage, imageRGB)
 
 encodedImage = png.from_array(imageRGB, "RGB;8")
-encodedImage.save("Results\\seamCarvedFullMod.png")
+encodedImage.save("Results\\seamCarvedRGB.png")
 
 
 
