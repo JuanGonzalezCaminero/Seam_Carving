@@ -45,11 +45,12 @@ import ImageUtility
 # We only know the values obtained from the evaluation of this function in each of the pixels
 
 #Returns an array indicating the cost of the less energy seam for each of the bottom-scanline pixels
-def removeMinimalSeam(energyImage):
+def removeMinimalSeam(energyImage, imageRGB):
     #PROVISIONAL UNTIL I WRITE THE DECODER FOR TYPE 0 COLOR AND THE RECEIVED IMAGE
     #IS ALREADY GREYSCALE
     if(type(energyImage[0][0]) != int):
         energyImage = getGreyscale(energyImage)
+    #print("Seam cost generation started")
     seamCost = []
     #Initializing the values of the pixels in the top scanline
     seamCost.append(energyImage[0])
@@ -76,6 +77,9 @@ def removeMinimalSeam(energyImage):
     #print(seamCost[len(energyImage) - 1])
     #ImageUtility.printChannel(seamCost, "Coste")
     #print("")
+
+    #print("Seam cost generation finished")
+
     minElement = min(seamCost[len(energyImage) - 1])
     indexOfMin = seamCost[len(energyImage) - 1].index(minElement)
     previousIndex = indexOfMin
@@ -90,6 +94,7 @@ def removeMinimalSeam(energyImage):
             minElement = min(seamCost[i][indexOfMin],
                              seamCost[i][indexOfMin + 1])
             energyImage[i + 1].pop(indexOfMin)
+            imageRGB[i + 1].pop(indexOfMin)
             previousIndex = indexOfMin
             indexOfMin = seamCost[i].index(minElement, previousIndex, previousIndex + 2)
 
@@ -97,6 +102,7 @@ def removeMinimalSeam(energyImage):
             minElement = min(seamCost[i][indexOfMin - 1],
                              seamCost[i][indexOfMin])
             energyImage[i + 1].pop(indexOfMin)
+            imageRGB[i + 1].pop(indexOfMin)
             previousIndex = indexOfMin
             indexOfMin = seamCost[i].index(minElement, previousIndex - 1, previousIndex + 1)
 
@@ -105,10 +111,12 @@ def removeMinimalSeam(energyImage):
                              seamCost[i][indexOfMin],
                              seamCost[i][indexOfMin + 1])
             energyImage[i + 1].pop(indexOfMin)
+            imageRGB[i + 1].pop(indexOfMin)
             previousIndex = indexOfMin
             indexOfMin = seamCost[i].index(minElement, previousIndex - 1, previousIndex + 2)
 
-    return energyImage
+    #print("Backtracking finished")
+    return energyImage, imageRGB
 
 
 #Returns an RGB version of a greyscale image, esentially, returns a 3 channel
