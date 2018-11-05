@@ -1,6 +1,3 @@
-import png
-import functools
-import ImageUtility
 import copy
 import math
 from datetime import *
@@ -51,13 +48,14 @@ from scipy import ndimage
 
 #Returns an array indicating the cost of the less energy seam for each of the bottom-scanline pixels
 def getSeamCostAlt(energyImage):
-    outer_for_iterations = 0
-    inner_for_iterations = 0
-
     startTime = datetime.now()
 
-    seamCost = []
-    seamCost = copy.copy(energyImage)
+    #Initializing the seam cost matrix
+    seamCost = [[]] * len(energyImage)
+    for i in range(len(seamCost)):
+        seamCost[i] = [0] * len(energyImage[0])
+    #Initialize the first row
+    seamCost[0] = copy.copy(energyImage[0])
 
     # Now, iterate through all the rows from row 2 to n and through
     # all the pixels in each row
@@ -82,14 +80,10 @@ def getSeamCostAlt(energyImage):
     timeDifference = endTime - startTime
     elapsedTimeMicro = timeDifference.microseconds + timeDifference.seconds * 1000000
     #print("Elapsed: %d" % elapsedTimeMicro)
-    #print("Height: %d\nWidth: %d" % (len(energyImage), len(energyImage[0])))
-    #print("Outer: %d\nInner: %d" % (outer_for_iterations, inner_for_iterations))
-
     return seamCost
 
-
 #Returns an array indicating the cost of the less energy seam for each of the bottom-scanline pixels
-#(Old)
+#(Old version, the Alt version is much faster)
 def getSeamCost(energyImage):
     outer_for_iterations = 0
     inner_for_iterations = 0
@@ -131,50 +125,7 @@ def getSeamCost(energyImage):
     return seamCost
 
 #Receives a multi-dimensional array containing the energy values from the pixels of imageRGB, another multi-
-#dimensional array, and a last muñti-dimensional array which contains the minimum seam cost from each pixel
-#to the top scanline, returns energyImage and imageRGB with the least cost seam removed
-def removeMinimalSeamAlt(energyImage, imageRGB, seamCost):
-
-    minElement = min(seamCost[len(energyImage) - 1])
-    indexOfMin = seamCost[len(energyImage) - 1].index(minElement)
-    previousIndex = indexOfMin
-
-    #Reverse search, removing elements after we find the next
-    for i in range(len(energyImage) - 1, -1, -1):
-        #The search for the index is restricted to the 3 elements from which the minimum
-        #element was extracted since there could be another element of the same value in
-        #other position of the scanline and we dont want that to be returned. Maybe 2 or even
-        #the 3 of them have the same value, thats irrelevant as then all the routes would yield
-        #a result of the same value
-        if indexOfMin == 0:
-            minElement = min(seamCost[i - 1][indexOfMin],
-                             seamCost[i - 1][indexOfMin + 1])
-            energyImage[i].pop(indexOfMin)
-            imageRGB[i].pop(indexOfMin)
-            previousIndex = indexOfMin
-            indexOfMin = seamCost[i - 1].index(minElement, previousIndex, previousIndex + 2)
-
-        elif indexOfMin == len(seamCost[0]) - 1:
-            minElement = min(seamCost[i - 1][indexOfMin - 1],
-                             seamCost[i - 1][indexOfMin])
-            energyImage[i].pop(indexOfMin)
-            imageRGB[i].pop(indexOfMin)
-            previousIndex = indexOfMin
-            indexOfMin = seamCost[i - 1].index(minElement, previousIndex - 1, previousIndex + 1)
-
-        else:
-            minElement = min(seamCost[i - 1][indexOfMin - 1],
-                             seamCost[i - 1][indexOfMin],
-                             seamCost[i - 1][indexOfMin + 1])
-            energyImage[i].pop(indexOfMin)
-            imageRGB[i].pop(indexOfMin)
-            previousIndex = indexOfMin
-            indexOfMin = seamCost[i - 1].index(minElement, previousIndex - 1, previousIndex + 2)
-
-    return energyImage, imageRGB
-
-#Receives a multi-dimensional array containing the energy values from the pixels of imageRGB, another multi-
-#dimensional array, and a last muñti-dimensional array which contains the minimum seam cost from each pixel
+#dimensional array, and a last multi-dimensional array which contains the minimum seam cost from each pixel
 #to the top scanline, returns energyImage and imageRGB with the least cost seam removed
 def removeMinimalSeam(energyImage, imageRGB):
     seamCost = getSeamCostAlt(energyImage)
@@ -183,27 +134,12 @@ def removeMinimalSeam(energyImage, imageRGB):
     #scanline (there may be more than one), and to remove it, repeat the algorithm in reverse removing
     #the corresponding pixels
 
-    #print(seamCost[len(energyImage) - 1])
-
-    #ImageUtility.printChannel(seamCost, "Coste")
-
-    #print("")
-
-    #ImageUtility.printChannel(energyImage, "Energía")
-
-    #print("")
-
-    #print("Seam cost generation finished")
-
     minElement = min(seamCost[len(energyImage) - 1])
     indexOfMin = seamCost[len(energyImage) - 1].index(minElement)
     previousIndex = indexOfMin
 
     #Reverse search, removing elements after we find the next
     for i in range(len(energyImage) - 1, -1, -1):
-
-        #print("Min: ", minElement, "Line: ", i, "Index: ", indexOfMin)
-
         #The search for the index is restricted to the 3 elements from which the minimum
         #element was extracted since there could be another element of the same value in
         #other position of the scanline and we dont want that to be returned. Maybe 2 or even
@@ -233,12 +169,6 @@ def removeMinimalSeam(energyImage, imageRGB):
             imageRGB[i].pop(indexOfMin)
             previousIndex = indexOfMin
             indexOfMin = seamCost[i - 1].index(minElement, previousIndex - 1, previousIndex + 2)
-
-    #ImageUtility.printChannel(seamCost, "Coste final")
-
-    #ImageUtility.printChannel(energyImage, "Energía final")
-
-    #print("Backtracking finished")
 
     return energyImage, imageRGB
 
@@ -332,7 +262,7 @@ def drawChosenSeam(energyImage, seamCost, imageSeams):
 
     return imageSeams
 
-#Returns an RGB version of a greyscale image, essentially, returns a 3 channel
+#Returns an RGB version of a greyscale image. Essentially, returns a 3 channel
 #image with the same value in the 3 channels of each pixel
 def getRGBVersion(imageGrey):
     rgbImage = []
@@ -342,7 +272,7 @@ def getRGBVersion(imageGrey):
             rgbImage[i].append((imageGrey[i][j], imageGrey[i][j], imageGrey[i][j]))
     return rgbImage
 
-# Returns an int matrix for each of the color channels in imageRGB
+#Returns an integer matrix for each of the color channels in imageRGB
 def getSeparateChannels(imageRGB):
     imageR = []
     imageG = []
@@ -359,7 +289,7 @@ def getSeparateChannels(imageRGB):
 
     return (imageR, imageG, imageB)
 
-# prints a RGB image, represented as a 3-tuple matrix
+#prints a RGB image, represented as a 3-tuple matrix
 def printImage(imageRGB):
     for i in range(len(imageRGB)):
         print("")
@@ -375,14 +305,25 @@ def printImage(imageRGB):
                 print(imageRGB[i][j][n] // 256, end=" ")
             print(")", end="")
 
-# Prints an image channel, represented as an int matrix, prints printMessage
-# before the matrix
+#Prints an image channel, represented as an int matrix, prints printMessage
+#before the matrix
 def printChannel(channel, printMessage):
     print("\n\n", printMessage, end="")
     for i in range(len(channel)):
         print("")
         for j in range(len(channel[0])):
             print("%5d" % channel[i][j], end=" ")
+
+#Receives 3 matrices representing the 3 color channels and returns a single matrix containing
+#3-tuples with the values for each channel
+#The matrices have to be of the same size
+def combineRGBChannels(r, g, b):
+    rgb = []
+    for i in range(len(r)):
+        rgb.append([])
+        for j in range(len(r[0])):
+            rgb[i].append((r[i][j],g[i][j],b[i][j]))
+    return rgb
 
 #Receives a greyscale image, or a channel from an RGB image, indistinctly, and returns an
 #approximation to the values of the gradient (the derivatives with respect to x and y) computed
@@ -405,6 +346,70 @@ def getSobelDerivativeApproximations(image):
         result.append(list(zip(dx[i], dy[i])))
     return result
 
+#Receives an image and a standard deviation for the filter, returns the filtered image
+#the filter is applied by convolving the image with it
+def gaussianBlur(image, standard_deviation):
+    #Instead of generating a gaussian matrix and using it as the filter, first convolves
+    #the image in one direction with a 1-dimensional filter and then does the same in the other
+    #direction, the result is the same but involves less operations
+
+    #In practice, we only need a filter that affects the surrounding pixels, as the influence of the
+    #ones further than 3 * standard_deviation from the one we are filtering can be dismissed
+    filter_size = int(math.ceil(standard_deviation * 3))
+
+    #Computing the filter values and storing them in a 2-dimensional list since the scipy's convolve
+    #function requires that both arguments have the same number of dimensions
+    filter = []
+    for i in range(-filter_size, filter_size + 1):
+        filter.append(
+            (1/math.sqrt(2*math.pi*standard_deviation**2))* math.pow(math.e,-1*(abs(i**2)/(2*standard_deviation**2)))
+        )
+    #The filter has to be 2-dimensional
+    filter = [filter]
+    #This filters the image in the y axis (I think?)
+    filtered_image = ndimage.convolve(image, filter)
+    #Now transpose the filter
+    filter_2 = []
+    for i in filter[0]:
+        filter_2.append([i])
+    #filter the image in the other direction
+    filtered_image = ndimage.convolve(filtered_image, filter_2)
+
+    return filtered_image
+
+#Receives an RGB image, applies a gaussian blur to each channel and returns the 3 corresponding matrices
+#Note that the values returned are not constrained by any bit depth limitations and may not be suitable
+#for storing as an image
+def gaussianBlurRGB(imageRGB, standard_deviation):
+    (imageR, imageG, imageB) = getSeparateChannels(imageRGB)
+    blur_r = gaussianBlur(imageR, standard_deviation)
+    blur_g = gaussianBlur(imageG, standard_deviation)
+    blur_b = gaussianBlur(imageB, standard_deviation)
+    return blur_r, blur_g, blur_b
+
+#Receives a RGB image, a standard deviation value for the gauss distribution, and a bit depth value,
+#and returns a blurred version of the image suitable for saving as an image with the specified bit depth
+def getBlurredImage(image, standard_deviation, bit_depth):
+    blur_r, blur_g, blur_b = gaussianBlurRGB(image, standard_deviation)
+    blur_r = fitValuesInRange(blur_r, 2 ** bit_depth)
+    blur_g = fitValuesInRange(blur_g, 2 ** bit_depth)
+    blur_b = fitValuesInRange(blur_b, 2 ** bit_depth)
+    blurred_image = combineRGBChannels(blur_r, blur_g, blur_b)
+    return blurred_image
+
+#Receives a RGB image and returns the result of applying the simple energy function from getSimpleEnergy
+#with values suitable for saving as an image with the specified bit depth, as a greyscale image
+def getSimpleEnergyImage(imageRGB, bit_depth):
+    energy = getSimpleEnergyRGB(imageRGB)
+    energy = fitValuesInRange(energy, 2 ** bit_depth)
+    return energy
+
+#Receives a RGB image and returns the result of applying the energy function using the gradient module,
+#with values suitable for saving as an image with the specified bit depth, as a greyscale image
+def getModuleEnergyImage(imageRGB, bit_depth):
+    energy = getEnergyRGBAsModule(imageRGB)
+    energy = fitValuesInRange(energy, 2 ** bit_depth)
+    return energy
 
 #Receives an approximation to the gradient values in each pixel of an image, that is the
 #values of the derivatives with respect to both x and y for each pixel, and computes the energy
@@ -446,7 +451,6 @@ def getGreyscale(imageRGB):
             greyscaleImage[i].append(imageR[i][j] // 3 + imageG[i][j] // 3 + imageB[i][j] // 3)
     return greyscaleImage
 
-
 #Gets an energy matrix for each channel in imageRGB using the formula in the getSimpleEnergy function,
 #sums them and returns a single energy matrix for the whole image
 #Note that the values returned may be well over the bit depth range and not be suitable for a greyscale
@@ -478,55 +482,21 @@ def getEnergyRGBAsModule(imageRGB):
     energyImage = combineEnergyChannels(energyR, energyG, energyB)
     return energyImage
 
-#Gets the energy matrices from all 3 channels and combines them, fitting the values to the range
-#[0, 2 ** bitDepth] so the result is suitable for storing as an image with a certain bitDepth and the
-#values don't overflow
-def getSimpleEnergyRGBInRange(imageRGB, bitDepth):
-    bitsPerChannel = 2 ** bitDepth
-    (imageR, imageG, imageB) = getSeparateChannels(imageRGB)
-    gradientR = getSobelDerivativeApproximations(imageR)
-    gradientG = getSobelDerivativeApproximations(imageG)
-    gradientB = getSobelDerivativeApproximations(imageB)
-    energyR = getSimpleEnergy(gradientR)
-    energyG = getSimpleEnergy(gradientG)
-    energyB = getSimpleEnergy(gradientB)
-    energyImage = combineEnergyChannels(energyR, energyG, energyB)
-    #We now have to fit the values in energyImage to the range 0-bitDepth ** 2
-    minEnergy = min([min(row) for row in energyImage])
-    maxEnergy = max([max(row) for row in energyImage])
+#Receives a multi dimensional array and returns an array of the same size containing the values of the
+#first fit into the specified range, [0, high) (Can be extended to use an arbitrary lower value, check the link)
+#The result is, thus, suitable for storing as an image with a certain bitDepth, as the new values won't overflow
+def fitValuesInRange(image, high):
+    minEnergy = min([min(row) for row in image])
+    maxEnergy = max([max(row) for row in image])
 
-    for i in range(len(energyImage)):
-        for j in range(len(energyImage[0])):
-            energyImage[i][j] = ((bitsPerChannel-1) * (energyImage[i][j] - minEnergy))//(maxEnergy - minEnergy)
-            #I found this formula in:
-            #https://stackoverflow.com/questions/5294955/how-to-scale-down-a-range-of-numbers-with-a-known-min-and-max-value
-    return energyImage
-
-#Gets the energy matrices from all 3 channels and combines them module 2**BitDepth, so
-#The result is suitable for storing as an image with a certain bitDepth and the values don't
-#overflow
-def getEnergyRGBAsModuleInRange(imageRGB, bitDepth):
-    bitsPerChannel = 2 ** bitDepth
-    (imageR, imageG, imageB) = getSeparateChannels(imageRGB)
-    gradientR = getSobelDerivativeApproximations(imageR)
-    gradientG = getSobelDerivativeApproximations(imageG)
-    gradientB = getSobelDerivativeApproximations(imageB)
-    energyR = getEnergyAsModule(gradientR)
-    energyG = getEnergyAsModule(gradientG)
-    energyB = getEnergyAsModule(gradientB)
-    energyImage = combineEnergyChannels(energyR, energyG, energyB)
-    # We now have to fit the values in energyImage to the range 0-bitDepth ** 2
-    minEnergy = min([min(row) for row in energyImage])
-    maxEnergy = max([max(row) for row in energyImage])
-
-    for i in range(len(energyImage)):
-        for j in range(len(energyImage[0])):
-            energyImage[i][j] = ((bitsPerChannel - 1) * (energyImage[i][j] - minEnergy)) // (maxEnergy - minEnergy)
+    for i in range(len(image)):
+        for j in range(len(image[0])):
+            image[i][j] = ((high - 1) * (image[i][j] - minEnergy)) // (maxEnergy - minEnergy)
             # I found this formula in:
             # https://stackoverflow.com/questions/5294955/how-to-scale-down-a-range-of-numbers-with-a-known-min-and-max-value
-    return energyImage
+    return image
 
-#Receives 3 energy matrices and returns the sum of all 3, the values returned are not constrained by bit
+#Receives 3 energy matrices and returns the sum of all 3. The values returned are not constrained by bit
 #depth or any other consideration, they are simply the sum of the corresponding values from all matrices
 def combineEnergyChannels(energyR, energyG, energyB):
     energySum = []

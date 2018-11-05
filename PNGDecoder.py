@@ -15,8 +15,9 @@ class PNGDecoder:
         self.loadImage()
         self.numberOfChannels = self.getNumberOfChannels()
         self.pixelSize = self.getPixelSize()
-        self.scanlineLenght = self.pixelSize * self.imageWidth + 1
+        self.scanlineLength = self.pixelSize * self.imageWidth + 1
 
+    #Returns the number of color channels per pixel based in the color type
     def getNumberOfChannels(self):
         if self.colorType == 0:
             return 1
@@ -36,6 +37,9 @@ class PNGDecoder:
     def getBitDepth(self):
         return self.bitDepth
 
+    #Reads the file at self.filename, and initializes the decoder's parameter using its contents,
+    #also reads the data itself and loads it into a bytearray. This may cause problems with larger
+    #files, an iterable that reads data chunks of arbitrary length from the file may be a better option
     def loadImage(self):
         chunkType = ""
         self.image.seek(8)  # Skips the first 8 bytes
@@ -80,6 +84,7 @@ class PNGDecoder:
                 self.image.read(self.chunkLength)
                 self.image.read(4)
 
+    #Prints the image parameters to the standard output
     def printParameters(self):
         print("Image width: %d\n"
               "Image height: %d\n"
@@ -91,12 +96,14 @@ class PNGDecoder:
               (self.imageWidth, self.imageHeight, self.bitDepth, self.colorType,
                self.compressionMethod, self.filterMethod, self.interlaceMethod))
 
+    #Decompresses the image data using zlib
     def getDecompressedData(self):
         # The image data is stored in a bytearray. This data is compressed using a deflate compression
         #algorith, this library decodes it
         decompressedData = zlib.decompress(self.compressedImage, wbits=zlib.MAX_WBITS, bufsize=zlib.DEF_BUF_SIZE)
         return decompressedData
 
+    #Paeth predictor function, refer to the png specification
     def paethPredictor(self, a, b, c):
         p = a + b - c
         pa = abs(p - a)
@@ -110,6 +117,8 @@ class PNGDecoder:
             pr = c
         return pr
 
+    #Unfilters the data using an iterator that receives a stream of filtered data and returns an unfiltered
+    #scanline with each call, may be cleaner than the regular solution, but it doesn't seem to be any faster
     def getUnfilteredDataWithIterator(self, decompressedData):
         #Returns a matrix containing a bytearray for each scanline of the image
         decompressedData = bytearray(decompressedData)
@@ -131,6 +140,8 @@ class PNGDecoder:
 
         return unfilteredImage
 
+    #iterator that receives a stream of filtered data and returns an unfiltered
+    #scanline with each call
     def unfilterIterator(self, filteredData):
         #Iterator that yields unfiltered scanlines, filtered data is a bytearray containing
         #all the decompressed data from the image
@@ -148,7 +159,7 @@ class PNGDecoder:
             print(len(filteredData))
             yield previousScanline
 
-
+    #Receives a stream of filtered data and returns it unfiltered
     def getUnfilteredData(self, decompressedData):
         decompressedData = bytearray(decompressedData)
         unfilteredImage = bytearray()
@@ -184,6 +195,8 @@ class PNGDecoder:
 
         return unfilteredImage
 
+    #Receives a filter type, from 0 to 4, a filtered scanline and the previous scanline to that one,
+    #unfiltered, returns the scanline unfiltered
     def unfilterScanline(self, filter_type, scanline, previous_scanline):
         # Naming:
         # x: the byte being filtered
@@ -263,7 +276,8 @@ class PNGDecoder:
                 result[i] = (scanline[i] + pr) & 0xff
             return result
 
-
+    #De-serializes scanlines from a stream of unfiltered data, returns a multi-dimensional array with the
+    #pixel values in tuples containing bytearrays
     def getDeinterlacedData(self, unfilteredData):
         # We now have the image data with the scanlines unfiltered. The scanlines are serialized within
         # this data. The last step is decoding the interlacing, if any was applied
@@ -285,13 +299,15 @@ class PNGDecoder:
                         # The data is appended to the list i of the list of lists "deinterlacedImage", thanks python!
                         # Depending on the bit depth, each channel will be made up of 8 or 16 bits, (in truecolour)
                         if self.bitDepth == 8:
-                            deinterlacedImage[i].append((unfilteredData[i * scanlineLength8 + 3 * j],
-                                                    unfilteredData[i * scanlineLength8 + 3 * j + 1],
-                                                    unfilteredData[i * scanlineLength8 + 3 * j + 2]))
+                            deinterlacedImage[i].append((unfilteredData[i * scanlineLength8 + 3 * j:
+                                                                        i * scanlineLength8 + 3 * j + 3]))
+                            #Its unnecessary to put the values in a tuple in the commented way, since, with this bit
+                            #depth, each tuple element corresponds to one bytearray element anyway, so, by storing that
+                            #section of the bytearray in a tuple we are creating a 3-element tuple
+                            #deinterlacedImage[i].append((unfilteredData[i * scanlineLength8 + 3 * j],
+                            #                        unfilteredData[i * scanlineLength8 + 3 * j + 1],
+                            #                        unfilteredData[i * scanlineLength8 + 3 * j + 2]))
                         else:
-                            # print("i: ",  i)
-                            # print("j: ",  j)
-                            # print(i * imageWidth * 2 * 3 + 3 * j * 2)
                             # scanline * ancho de la imagen * 2 bytes por canal * número de canales +
                             #  numero de canales * posicion del pixel * 2 bytes por canal
                             deinterlacedImage[i].append((unfilteredData[i * scanlineLength16 + 3 * j * 2:
@@ -308,23 +324,54 @@ class PNGDecoder:
                 print("Color type 4 decoding not yet implemented")
                 return
             elif self.colorType == 6:
-                print("Color type 6 decoding not yet implemented")
-                return
+                #This clearly has some issue, here or while formatting to RGB
+                scanlineLength8 = self.imageWidth * self.pixelSize
+                scanlineLength16 = self.imageWidth * 2 * self.pixelSize
+                for i in range(self.imageHeight):
+                    # Appending a new empty list to the list of lists
+                    deinterlacedImage.append([])
+                    for j in range(self.imageWidth):
+                        # Treat the unfiltered data vector as a pointer to the start of a matrix
+                        # The data is appended to the list i of the list of lists "deinterlacedImage", thanks python!
+                        # Depending on the bit depth, each channel will be made up of 8 or 16 bits, (in truecolour)
+                        if self.bitDepth == 8:
+                            deinterlacedImage[i].append((unfilteredData[i * scanlineLength8 + self.pixelSize * j:
+                                                                        i * scanlineLength8 + self.pixelSize * j + self.pixelSize + 1]))
+                            # Its unnecessary to put the values in a tuple in the commented way, since, with this bit
+                            # depth, each tuple element corresponds to one bytearray element anyway, so, by storing that
+                            # section of the bytearray in a tuple we are creating a 3-element tuple
+                            # deinterlacedImage[i].append((unfilteredData[i * scanlineLength8 + 3 * j],
+                            #                        unfilteredData[i * scanlineLength8 + 3 * j + 1],
+                            #                        unfilteredData[i * scanlineLength8 + 3 * j + 2]))
+                        else:
+                            print("Color type 6 decoding with 16 bit color depth not yet implemented")
+                            # scanline * ancho de la imagen * 2 bytes por canal * número de canales +
+                            #  numero de canales * posicion del pixel * 2 bytes por canal
+                            #deinterlacedImage[i].append((unfilteredData[i * scanlineLength16 + 3 * j * 2:
+                            #                                            i * scanlineLength16 + 3 * j * 2 + 2],
+                            #                             unfilteredData[i * scanlineLength16 + 3 * j * 2 + 2:
+                            #                                            i * scanlineLength16 + 3 * j * 2 + 4],
+                            #                             unfilteredData[i * scanlineLength16 + 3 * j * 2 + 4:
+                            #                                            i * scanlineLength16 + 3 * j * 2 + 6]))
+
+
+                return deinterlacedImage
         else:
             print("Interlace decoding not yet implemented")
             exit()
 
     #Returns a matrix containing a tuple for each pixel, which
-    #stores the values of the R G and B channels as ints
+    #stores the values of the R G and B channels as ints, if the image contains any transparency,
+    #that information is not recorded
     def getRGBImage(self):
-        print("Decompressing")
+        #print("Decompressing")
         decompressedImage = self.getDecompressedData()
-        print("Unfiltering")
+        #print("Unfiltering")
         unfilteredImage = self. getUnfilteredData(decompressedImage)
         #unfilteredImage = self.getUnfilteredDataWithIterator(decompressedImage)
-        print("Deinterlacing")
+        #print("Deinterlacing")
         deinterlacedImage = self.getDeinterlacedData(unfilteredImage)
-        print("Formatting")
+        #print("Formatting")
         rgbImage = []
 
         if self.colorType == 0:
@@ -354,8 +401,16 @@ class PNGDecoder:
             print("Color type 4 decoding not yet implemented")
             return
         elif self.colorType == 6:
-            print("Color type 6 decoding not yet implemented")
-            return
+            if self.bitDepth == 8:
+                for i in range(len(deinterlacedImage)):
+                    rgbImage.append([])
+                    for j in range(len(deinterlacedImage[0])):
+                        rgbImage[i].append((deinterlacedImage[i][j][0],
+                                            deinterlacedImage[i][j][1],
+                                            deinterlacedImage[i][j][2]))
+            else:
+                print("Color type 6 decoding with 16 bit color depth not yet implemented")
+            return rgbImage
 
 
 
