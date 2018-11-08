@@ -173,7 +173,7 @@ def removeMinimalSeam(energyImage, imageRGB):
     return energyImage, imageRGB
 
 #Calculates the minimal seams in an image and marks them red (not the same thing
-#shown in typical examples, those mark in red the removed seams in succesive steps)
+#shown in typical examples, those mark in red the removed seams in successive steps)
 def drawSeams(energyImage, imageRGB):
     imageSeams = copy.deepcopy(imageRGB)
     # print("Seam cost generation started")
@@ -434,8 +434,7 @@ def getEnergyAsModule(gradient):
     for i in range(len(gradient)):
         energyMatrix.append([])
         for j in range(len(gradient[i])):
-            energyMatrix[i].append(math.floor(abs(math.sqrt((gradient[i][j][0])**2) +
-                                                abs((gradient[i][j][1])**2 ))))
+            energyMatrix[i].append(math.floor(math.sqrt(abs((gradient[i][j][0])**2) + abs((gradient[i][j][1])**2 ))))
 
     return energyMatrix
 

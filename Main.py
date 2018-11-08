@@ -2,6 +2,7 @@ from PNGDecoder import PNGDecoder
 import png
 import ImageUtility
 import tqdm
+import os
 
 def generateEnergyImages(filename, imageType):
     decoder = PNGDecoder("Assets\\" + filename + ".png")
@@ -38,53 +39,19 @@ def generateEnergyImages(filename, imageType):
         #del(greyScaleEnergy)
         #del(greyscaleImage)
 
-    if imageType == "Simple":
-        print("Simple energy start")
-        energy = ImageUtility.getSimpleEnergyRGB(imageRGB)
-        energy = ImageUtility.fitValuesInRange(energy, 2 ** decoder.getBitDepth())
-        #An RGB color version is saved instead of the greyscale as my png decoder
-        #does not provide greyscale decoding functionality yet
-        energy = ImageUtility.getRGBVersion(energy)
-        print("Simple energy end")
-        encodedImage = None
-        if bitDepth == 8:
-            encodedImage = png.from_array(energy, "RGB;8")
-        elif bitDepth == 16:
-            encodedImage = png.from_array(energy, "RGB;16")
-        encodedImage.save("Results\\" + filename + "\\simple_energy.png")
-
-        del(energy)
-
-    if imageType == "Module":
-        print("Module energy start")
-        energy = ImageUtility.getEnergyRGBAsModule(imageRGB)
-        energy = ImageUtility.fitValuesInRange(energy, 2 ** decoder.getBitDepth())
-        #An RGB color version is saved instead of the greyscale as my png decoder
-        #does not provide greyscale decoding functionality yet
-        energy = ImageUtility.getRGBVersion(energy)
-        print("Module energy end")
-        encodedImage = None
-        if bitDepth == 8:
-            encodedImage = png.from_array(energy, "RGB;8")
-        elif bitDepth == 16:
-            encodedImage = png.from_array(energy, "RGB;16")
-        encodedImage.save("Results\\" + filename + "\\module_energy.png")
-
-        del(energy)
-
 ######################### MAIN ##############################
 #Run options:
 #Image generation options, just to see the process
-GENERATE_SIMPLE_ENERGY = 1
-GENERATE_MODULE_ENERGY = 0
+GENERATE_SIMPLE_ENERGY_IMAGE = 1
+GENERATE_MODULE_ENERGY_IMAGE = 0
 GENERATE_BLURRED = 1
-GENERATE_SIMPLE_ENERGY_FROM_BLURRED = 0
+GENERATE_SIMPLE_ENERGY_FROM_BLURRED = 1
 GENERATE_MODULE_ENERGY_FROM_BLURRED = 0
 GENERATE_GREYSCALE = 0
 GENERATE_SEAM_SELECTION_IMAGES = 0
 #Gaussian blur options
 GAUSSIAN_BLUR_BEFORE_ENERGY = 0
-GAUSSIAN_BLUR_DEVIATION = 2
+GAUSSIAN_BLUR_DEVIATION = 4
 #Energy function selection, choose one
 CARVE_WITH_SIMPLE_ENERGY = 1
 CARVE_WITH_MODULE_ENERGY = 0
@@ -101,8 +68,18 @@ seams_to_remove_y = int(len(imageRGB) - len(imageRGB) * REDUCTION_RATIO_Y)
 energy = None
 encodedImage = None
 blurredImg = None
+simpleImage = None
+moduleImage = None
 
-if GENERATE_SIMPLE_ENERGY:
+#Creating the needed directories
+try:
+    os.mkdir("Results\\" + imageName)
+    os.mkdir("Results\\" + imageName + "\\SeamSelection")
+except FileExistsError:
+    pass
+
+
+if GENERATE_SIMPLE_ENERGY_IMAGE:
     print("Generating simple energy image")
     simpleImage = ImageUtility.getSimpleEnergyImage(imageRGB, decoder.bitDepth)
     if decoder.bitDepth == 8:
@@ -111,7 +88,7 @@ if GENERATE_SIMPLE_ENERGY:
         encodedImage = png.from_array(simpleImage, "L;16")
     encodedImage.save("Results\\" + imageName + "\\simple_energy.png")
 
-if GENERATE_MODULE_ENERGY:
+if GENERATE_MODULE_ENERGY_IMAGE:
     print("Generating module energy image")
     moduleImage = ImageUtility.getModuleEnergyImage(imageRGB, decoder.bitDepth)
     if decoder.bitDepth == 8:
@@ -130,7 +107,7 @@ if GENERATE_BLURRED:
     encodedImage.save("Results\\" + imageName + "\\blurred.png")
 
 if GENERATE_SIMPLE_ENERGY_FROM_BLURRED:
-    if blurredImg == None:
+    if blurredImg is None:
         print("Generating blurred image")
         blurredImg = ImageUtility.getBlurredImage(imageRGB, GAUSSIAN_BLUR_DEVIATION, decoder.bitDepth)
     print("Generating simple energy image from blurred image")
@@ -142,29 +119,38 @@ if GENERATE_SIMPLE_ENERGY_FROM_BLURRED:
     encodedImage.save("Results\\" + imageName + "\\simple_energy_from_blurred.png")
 
 if GENERATE_MODULE_ENERGY_FROM_BLURRED:
-    if blurredImg == None:
+    if blurredImg is None:
         print("Generating blurred image")
         blurredImg = ImageUtility.getBlurredImage(imageRGB, GAUSSIAN_BLUR_DEVIATION, decoder.bitDepth)
     print("Generating module energy image from blurred image")
-    moduleImage = ImageUtility.getModuleEnergyImage(imageRGB, decoder.bitDepth)
+    moduleImage = ImageUtility.getModuleEnergyImage(blurredImg, decoder.bitDepth)
     if decoder.bitDepth == 8:
         encodedImage = png.from_array(moduleImage, "L;8")
     elif decoder.bitDepth == 16:
         encodedImage = png.from_array(moduleImage, "L;16")
     encodedImage.save("Results\\" + imageName + "\\module_energy_from_blurred.png")
 
-if GAUSSIAN_BLUR_BEFORE_ENERGY:
-    print("Computing Gaussian blur")
-    blur_r, blur_g, blur_b = ImageUtility.gaussianBlurRGB(imageRGB, GAUSSIAN_BLUR_DEVIATION)
-    imageRGB = ImageUtility.combineRGBChannels(blur_r, blur_g, blur_b)
-
 if CARVE_WITH_SIMPLE_ENERGY:
-    print("Computing simple energy")
-    energy = ImageUtility.getSimpleEnergyRGB(imageRGB)
+    if GAUSSIAN_BLUR_BEFORE_ENERGY:
+        print("Computing Gaussian blur")
+        blur_r, blur_g, blur_b = ImageUtility.gaussianBlurRGB(imageRGB, GAUSSIAN_BLUR_DEVIATION)
+        blurred = ImageUtility.combineRGBChannels(blur_r, blur_g, blur_b)
+        print("Computing simple energy")
+        energy = ImageUtility.getSimpleEnergyRGB(blurred)
+    else:
+        print("Computing simple energy")
+        energy = ImageUtility.getSimpleEnergyRGB(imageRGB)
 
 elif CARVE_WITH_MODULE_ENERGY:
-    print("Computing simple energy")
-    energy = ImageUtility.getSimpleEnergyRGB(imageRGB)
+    if GAUSSIAN_BLUR_BEFORE_ENERGY:
+        print("Computing Gaussian blur")
+        blur_r, blur_g, blur_b = ImageUtility.gaussianBlurRGB(imageRGB, GAUSSIAN_BLUR_DEVIATION)
+        blurred = ImageUtility.combineRGBChannels(blur_r, blur_g, blur_b)
+        print("Computing simple energy")
+        energy = ImageUtility.getEnergyRGBAsModule(blurred)
+    else:
+        print("Computing simple energy")
+        energy = ImageUtility.getEnergyRGBAsModule(imageRGB)
 
 else:
     print("Please select an energy function")
@@ -207,8 +193,16 @@ imageRGB = [list(t) for t in zip(*imageRGB)]
 
 #Save the final result
 encodedImage = png.from_array(imageRGB, "RGB;8")
-encodedImage.save("Results\\" + imageName + "\\seamCarved.png")
-
+if CARVE_WITH_SIMPLE_ENERGY:
+    if GAUSSIAN_BLUR_BEFORE_ENERGY:
+        encodedImage.save("Results\\" + imageName + "\\seam_carved_simple_with_blur.png")
+    else:
+        encodedImage.save("Results\\" + imageName + "\\seam_carved_simple.png")
+else:
+    if GAUSSIAN_BLUR_BEFORE_ENERGY:
+        encodedImage.save("Results\\" + imageName + "\\seam_carved_module_with_blur.png")
+    else:
+        encodedImage.save("Results\\" + imageName + "\\seam_carved_module.png")
 
 
 
