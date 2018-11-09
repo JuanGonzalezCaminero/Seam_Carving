@@ -1,5 +1,0 @@
-
-Initialize top row of pixels
-for row = 2 to n:
-    for column = 1 to m:
-        Cost_matrix[i][j] = Energy_matrix[i][j] + min()
