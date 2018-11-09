@@ -177,29 +177,11 @@ def removeMinimalSeam(energyImage, imageRGB):
 def drawSeams(energyImage, imageRGB):
     imageSeams = copy.deepcopy(imageRGB)
     # print("Seam cost generation started")
-    seamCost = []
-    # Initializing the values of the pixels in the top scanline
-    seamCost.append(energyImage[0])
-    # Now, iterate through all the rows from row 2 to n and through
-    # all the pixels in each row
-    for i in range(1, len(energyImage)):
-        seamCost.append([])
-        for j in range(len(energyImage[0])):
-            # Compute the minimum seam cost up to each pixel of the row
-            if j == 0:
-                seamCost[i].append(min(seamCost[i - 1][j],
-                                       seamCost[i - 1][j + 1]) + energyImage[i][j])
-            elif j == len(energyImage[0]) - 1:
-                seamCost[i].append(min(seamCost[i - 1][j - 1],
-                                       seamCost[i - 1][j]) + energyImage[i][j])
-            else:
-                seamCost[i].append(min(seamCost[i - 1][j - 1],
-                                       seamCost[i - 1][j],
-                                       seamCost[i - 1][j + 1]) + energyImage[i][j])
+    seamCost = getSeamCostAlt(energyImage)
     # We now have a matrix that contains the cost of the seam to each pixel for each scanline,
     # to determine the least expensive seam just pick the pixel with the smallest value in the last
-    # scanline (there may be more than one), and to remove it, repeat the algorithm in reverse removing
-    # the corresponding pixels
+    # scanline (there may be more than one)
+    #And, for each scanline, backtrack while setting the pixels to red
 
     for j in range(len(energyImage[0])):
         pixel = seamCost[len(energyImage) - 1][j]
@@ -228,6 +210,7 @@ def drawSeams(energyImage, imageRGB):
                 previousIndex = indexOfPixel
                 indexOfPixel = seamCost[i - 1].index(pixel, previousIndex - 1, previousIndex + 2)
 
+    #Draw the least cost seam in yellow
     imageSeams = drawChosenSeam(energyImage, seamCost, imageSeams)
 
     return imageSeams

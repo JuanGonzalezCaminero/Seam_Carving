@@ -43,11 +43,11 @@ def generateEnergyImages(filename, imageType):
 #Run options:
 #Image generation options, just to see the process
 GENERATE_SIMPLE_ENERGY_IMAGE = 1
-GENERATE_MODULE_ENERGY_IMAGE = 0
+GENERATE_MODULE_ENERGY_IMAGE = 1
 GENERATE_BLURRED = 1
 GENERATE_SIMPLE_ENERGY_FROM_BLURRED = 1
 GENERATE_MODULE_ENERGY_FROM_BLURRED = 0
-GENERATE_GREYSCALE = 0
+#GENERATE_GREYSCALE = 0
 GENERATE_SEAM_SELECTION_IMAGES = 0
 #Gaussian blur options
 GAUSSIAN_BLUR_BEFORE_ENERGY = 0
@@ -56,10 +56,10 @@ GAUSSIAN_BLUR_DEVIATION = 4
 CARVE_WITH_SIMPLE_ENERGY = 1
 CARVE_WITH_MODULE_ENERGY = 0
 #New image dimensions, leave ratio at 1 for no rescale
-REDUCTION_RATIO_X = 0.8
+REDUCTION_RATIO_X = 0.7
 REDUCTION_RATIO_Y = 1
 
-imageName = "tren1008x756"
+imageName = "pillars_of_creation"
 decoder = PNGDecoder("Assets\\" + imageName + ".png")
 print("Decoding image")
 imageRGB = decoder.getRGBImage()
